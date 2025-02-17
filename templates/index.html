@@ -111,8 +111,14 @@
 <div class="card mb-4">
     <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
         <h5 class="card-title mb-0">Device Registration Data</h5>
-        <div class="text-white">
-            Showing {{ (page-1) * 10 + 1 }} to {{ min(page * 10, total_items) }} of {{ total_items }} entries
+        <div class="d-flex align-items-center">
+            <div class="text-white me-3">
+                Showing {{ (page-1) * 10 + 1 }} to {{ min(page * 10, total_items) }} of {{ total_items }} entries
+            </div>
+            <a href="/export-excel?imei={{ selected_imei }}&start_date={{ start_date }}&end_date={{ end_date }}" 
+               class="btn btn-success btn-sm">
+                <i class="fas fa-file-excel me-1"></i> Export Excel
+            </a>
         </div>
     </div>
     <div class="card-body">
