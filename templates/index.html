@@ -1,0 +1,428 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Info Boxes -->
+<div class="row mb-4">
+    <!-- Total Devices Box -->
+    <div class="col-md-2">
+        <div class="card bg-primary text-white h-100">
+            <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                <div class="text-center">
+                    <i class="fas fa-microchip fa-2x mb-2"></i>
+                    <h6 class="card-title">Total Devices</h6>
+                    <h3 class="mb-0">{{ devices|length }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Selected Device Box -->
+    <div class="col-md-2">
+        <div class="card bg-info text-white h-100">
+            <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                <div class="text-center">
+                    <i class="fas fa-satellite-dish fa-2x mb-2"></i>
+                    <h6 class="card-title">Selected Device</h6>
+                    <h5 class="mb-0">{{ selected_imei or 'All Devices' }}</h5>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if selected_imei and device_status %}
+        <!-- Voltage Box -->
+        <div class="col-md-2">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                    <div class="text-center">
+                        <i class="fas fa-bolt fa-2x mb-2"></i>
+                        <h6 class="card-title">Voltage</h6>
+                        <h3 class="mb-0">{{ device_status.voltage or '-' }}V</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Battery Box -->
+        <div class="col-md-2">
+            <div class="card bg-warning text-dark h-100">
+                <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                    <div class="text-center">
+                        <i class="fas fa-battery-three-quarters fa-2x mb-2"></i>
+                        <h6 class="card-title">Battery</h6>
+                        <h3 class="mb-0">{{ device_status.persentase_baterai or '-' }}%</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Last Update Box -->
+        <div class="col-md-2">
+            <div class="card h-100">
+                <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                    <div class="text-center">
+                        <i class="fas fa-clock fa-2x mb-2 text-muted"></i>
+                        <h6 class="card-title text-muted">Last Update</h6>
+                        <small class="text-muted">{{ device_status.timestamp or '-' }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Box -->
+        <div class="col-md-2">
+            <div class="card h-100">
+                <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                    <div class="text-center">
+                        <i class="fas fa-signal fa-2x mb-2 text-{{ 'success' if device_status.is_online else 'danger' }}"></i>
+                        <h6 class="card-title">Status</h6>
+                        <h5 class="text-{{ 'success' if device_status.is_online else 'danger' }} fw-bold">
+                            {{ 'Online' if device_status.is_online else 'Offline' }}
+                        </h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <!-- Empty Status Message -->
+        <div class="col-md-8">
+            <div class="card h-100">
+                <div class="card-body d-flex align-items-center justify-content-center">
+                    <div class="text-center text-muted">
+                        <i class="fas fa-info-circle fa-2x mb-2"></i>
+                        <h5>Select a device to view detailed status</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Map Card -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="card-title mb-0">Device Locations</h5>
+    </div>
+    <div class="card-body p-0">  <!-- Remove padding for better map display -->
+        <div id="map"></div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Device Registration Data</h5>
+        <div class="text-white">
+            Showing {{ (page-1) * 10 + 1 }} to {{ min(page * 10, total_items) }} of {{ total_items }} entries
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Filter Forms -->
+        <div class="row g-3 mb-4">
+            <!-- Device Filter -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <form id="deviceFilterForm" class="mb-0">
+                            <label class="form-label">Device IMEI</label>
+                            <div class="input-group">
+                                <select name="imei" class="form-select" id="deviceSelect">
+                                    <option value="">All Devices</option>
+                                    {% for device in devices %}
+                                        <option value="{{ device.imei }}" {% if selected_imei == device.imei %}selected{% endif %}>
+                                            {{ device.imei }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-filter"></i> Filter Device
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Date Range Filter -->
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-body">
+                        <form id="dateFilterForm" class="row g-3 mb-0">
+                            <div class="col-md-4">
+                                <label class="form-label">Start Date</label>
+                                <input type="datetime-local" name="start_date" class="form-control" 
+                                       value="{{ start_date }}" max="{{ now }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">End Date</label>
+                                <input type="datetime-local" name="end_date" class="form-control" 
+                                       value="{{ end_date }}" max="{{ now }}">
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary me-2">Filter Date</button>
+                                <button type="button" class="btn btn-secondary" id="resetDateBtn">Reset Date</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>IMEI</th>
+                        <th>Type</th>
+                        <th>Timestamp</th>
+                        <th>Location</th>
+                        <th>Battery</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in data %}
+                    <tr>
+                        <td>{{ (page-1) * 10 + loop.index }}</td>
+                        <td>{{ item.payload_id_1 }}</td>
+                        <td>{{ item.payload_id_2 }}</td>
+                        <td>{{ item.timestamp }}</td>
+                        <td>
+                            {% if item.latitude and item.longitude %}
+                            {{ item.latitude }}, {{ item.longitude }}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.voltage %}
+                            {{ item.voltage }}V ({{ item.persentase_baterai }}%)
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="d-flex justify-content-end mt-4">
+            <nav aria-label="Page navigation">
+                <ul class="pagination mb-0">
+                    <li class="page-item {% if page == 1 %}disabled{% endif %}">
+                        <a class="page-link" href="?page={{ page-1 }}&imei={{ selected_imei }}&start_date={{ start_date }}&end_date={{ end_date }}">&laquo;</a>
+                    </li>
+                    
+                    {% set start_page = [1, page - 1] | max %}
+                    {% set end_page = [start_page + 2, total_pages] | min %}
+                    {% if end_page - start_page < 2 %}
+                        {% set start_page = [end_page - 2, 1] | max %}
+                    {% endif %}
+                    
+                    {% if start_page > 1 %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1&imei={{ selected_imei }}&start_date={{ start_date }}&end_date={{ end_date }}">1</a>
+                        </li>
+                        {% if start_page > 2 %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endif %}
+                    
+                    {% for p in range(start_page, end_page + 1) %}
+                        <li class="page-item {% if page == p %}active{% endif %}">
+                            <a class="page-link" href="?page={{ p }}&imei={{ selected_imei }}&start_date={{ start_date }}&end_date={{ end_date }}">{{ p }}</a>
+                        </li>
+                    {% endfor %}
+                    
+                    {% if end_page < total_pages %}
+                        {% if end_page < total_pages - 1 %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ total_pages }}&imei={{ selected_imei }}&start_date={{ start_date }}&end_date={{ end_date }}">{{ total_pages }}</a>
+                        </li>
+                    {% endif %}
+                    
+                    <li class="page-item {% if page == total_pages %}disabled{% endif %}">
+                        <a class="page-link" href="?page={{ page+1 }}&imei={{ selected_imei }}&start_date={{ start_date }}&end_date={{ end_date }}">&raquo;</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize map
+    const map = L.map('map', {
+        center: [-6.2088, 106.8456],
+        zoom: 10,
+        minZoom: 3
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19
+    }).addTo(map);
+
+    // Force map to update its size
+    setTimeout(() => map.invalidateSize(), 100);
+
+    const markers = new Map();
+
+    async function getLatestDevicePosition(imei) {
+        try {
+            const [gpsResponse, heartbeatResponse] = await Promise.all([
+                fetch(`/gps/${imei}/latest`),
+                fetch(`/heartbeat/${imei}/latest`)
+            ]);
+            
+            const [gpsData, heartbeatData] = await Promise.all([
+                gpsResponse.json(),
+                heartbeatResponse.json()
+            ]);
+
+            return { gpsData, heartbeatData };
+        } catch (error) {
+            console.error('Error fetching device data:', error);
+            return null;
+        }
+    }
+
+    async function updateMap() {
+        const imei = document.getElementById('deviceSelect').value;
+        const startDate = document.querySelector('[name="start_date"]').value;
+        const endDate = document.querySelector('[name="end_date"]').value;
+        
+        try {
+            // Clear existing markers
+            markers.forEach(marker => map.removeLayer(marker));
+            markers.clear();
+
+            if (imei) {
+                // Single device mode
+                if (startDate && endDate) {
+                    // Get GPS data with date range
+                    const response = await fetch(`/registration/${imei}/gps?start_date=${startDate}&end_date=${endDate}`);
+                    const data = await response.json();
+                    
+                    if (data.data && data.data.length > 0) {
+                        const bounds = [];
+                        data.data.forEach(location => {
+                            if (location.latitude && location.longitude) {
+                                addMarker(location, bounds);
+                            }
+                        });
+                        if (bounds.length > 0) map.fitBounds(bounds);
+                    }
+                } else {
+                    // Get latest position for single device
+                    const deviceData = await getLatestDevicePosition(imei);
+                    if (deviceData && deviceData.gpsData.data) {
+                        const bounds = [];
+                        addDeviceMarker(deviceData.gpsData.data, deviceData.heartbeatData.data, bounds);
+                        if (bounds.length > 0) map.fitBounds(bounds);
+                    }
+                }
+            } else {
+                // All devices mode - show latest positions
+                try {
+                    const devicesResponse = await fetch('/devices');
+                    const { devices } = await devicesResponse.json();
+                    const bounds = [];
+                    
+                    await Promise.all(devices.map(async (device) => {
+                        try {
+                            const [gpsResponse, heartbeatResponse] = await Promise.all([
+                                fetch(`/gps/${device.imei}/latest`),
+                                fetch(`/heartbeat/${device.imei}/latest`)
+                            ]);
+                            
+                            const [gpsData, heartbeatData] = await Promise.all([
+                                gpsResponse.json(),
+                                heartbeatResponse.json()
+                            ]);
+                            
+                            if (gpsData.data && gpsData.data.latitude && gpsData.data.longitude) {
+                                addDeviceMarker(gpsData.data, heartbeatData.data, bounds);
+                            }
+                        } catch (error) {
+                            console.error(`Error fetching data for device ${device.imei}:`, error);
+                        }
+                    }));
+                    
+                    if (bounds.length > 0) map.fitBounds(bounds);
+                } catch (error) {
+                    console.error('Error fetching devices:', error);
+                }
+            }
+        } catch (error) {
+            console.error('Error updating map:', error);
+        }
+    }
+
+    function addMarker(location, bounds) {
+        const marker = L.marker([location.latitude, location.longitude])
+            .bindPopup(`
+                <div class="device-marker">
+                    <strong>IMEI: ${location.payload_id_1}</strong><br>
+                    Timestamp: ${new Date(location.timestamp).toLocaleString()}
+                </div>
+            `);
+        markers.set(location.payload_id_1, marker);
+        marker.addTo(map);
+        bounds.push([location.latitude, location.longitude]);
+    }
+
+    function addDeviceMarker(gpsData, heartbeatData, bounds) {
+        const lastUpdate = new Date(gpsData.timestamp);
+        const isOnline = (new Date() - lastUpdate) < 3600000; // 1 hour
+        
+        const marker = L.marker([gpsData.latitude, gpsData.longitude])
+            .bindPopup(`
+                <div class="device-marker">
+                    <strong>IMEI: ${gpsData.payload_id_1}</strong><br>
+                    Last Update: ${new Date(gpsData.timestamp).toLocaleString()}<br>
+                    ${heartbeatData ? `Battery: ${heartbeatData.voltage}V (${heartbeatData.persentase_baterai}%)` : ''}<br>
+                    <div class="status ${isOnline ? 'status-online' : 'status-offline'}">
+                        ${isOnline ? 'Online' : 'Offline'}
+                    </div>
+                </div>
+            `);
+        markers.set(gpsData.payload_id_1, marker);
+        marker.addTo(map);
+        bounds.push([gpsData.latitude, gpsData.longitude]);
+    }
+
+    // Update map on load and form submit
+    updateMap();
+    
+    document.getElementById('deviceFilterForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const imei = document.getElementById('deviceSelect').value;
+        window.location.href = `/dashboard?page=1&imei=${imei}`;
+    });
+
+    document.getElementById('dateFilterForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const startDate = this.querySelector('[name="start_date"]').value;
+        const endDate = this.querySelector('[name="end_date"]').value;
+        const imei = document.getElementById('deviceSelect').value;
+        window.location.href = `/dashboard?page=1&imei=${imei}&start_date=${startDate}&end_date=${endDate}`;
+    });
+
+    document.getElementById('resetDateBtn').addEventListener('click', function() {
+        const imei = document.getElementById('deviceSelect').value;
+        window.location.href = `/dashboard?page=1&imei=${imei}`;
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+{% endblock %}

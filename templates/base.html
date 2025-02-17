@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT Dashboard</title>
+    <!-- Add favicon -->
+    <link rel="shortcut icon" href="{{ url_for('static', path='/favicon.ico') }}">
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', path='/style.css') }}?v=1.0" rel="stylesheet">
+    {% block head_extra %}{% endblock %}
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --secondary-color: #e9ecef;
+        }
+        .navbar {
+            background-color: var(--primary-color) !important;
+        }
+        .page-item.active .page-link {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .table-responsive {
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .table thead th {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        #map {
+            height: 400px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .device-marker {
+            text-align: center;
+        }
+        .device-marker .status {
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        .status-online {
+            color: #28a745;
+        }
+        .status-offline {
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <!-- Sidebar -->
+        <nav id="sidebar">
+            <div class="sidebar-header">
+                <h3>POC TANTO CAT 1</h3>
+                <p>IoT Device Management</p>
+            </div>
+
+            <ul class="list-unstyled components">
+                <li class="{{ 'active' if request.url.path == '/dashboard' else '' }}">
+                    <a href="/dashboard">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="{{ 'active' if request.url.path == '/insert' else '' }}">
+                    <a href="/insert">
+                        <i class="fas fa-plus-circle"></i>
+                        <span>Add New Device</span>
+                    </a>
+                </li>
+            </ul>
+
+            <button type="button" id="sidebarCollapse" class="btn">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+        </nav>
+
+        <!-- Page Content -->
+        <div id="content">
+            <div class="container-fluid px-4">
+                {% block content %}{% endblock %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('sidebar');
+            const content = document.getElementById('content');
+            const sidebarCollapse = document.getElementById('sidebarCollapse');
+            
+            sidebarCollapse.addEventListener('click', function() {
+                sidebar.classList.toggle('active');
+                content.classList.toggle('active');
+                this.querySelector('i').classList.toggle('fa-chevron-left');
+                this.querySelector('i').classList.toggle('fa-chevron-right');
+            });
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
