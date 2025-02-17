@@ -221,18 +221,32 @@ async def export_excel(
         # Create Excel file in memory
         output = BytesIO()
         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-            # Write DataFrame to Excel
-            df.to_excel(writer, sheet_name='Device Data', index=False)
+            # Write DataFrame to Excel starting from row 4 (after headers)
+            df.to_excel(writer, sheet_name='Device Data', index=False, startrow=5)
             
-            # Get workbook and worksheet objects
             workbook = writer.book
             worksheet = writer.sheets['Device Data']
             
             # Define formats
+            title_format = workbook.add_format({
+                'bold': True,
+                'font_size': 12,
+                'align': 'left'
+            })
+            
             header_format = workbook.add_format({
                 'bold': True,
                 'font_color': 'white',
                 'bg_color': '#0d6efd',
+                'align': 'center',
+                'valign': 'vcenter',
+                'border': 1
+            })
+
+            subheader_format = workbook.add_format({
+                'bold': True,
+                'font_color': 'black',
+                'bg_color': '#e9ecef',
                 'align': 'center',
                 'valign': 'vcenter',
                 'border': 1
@@ -243,15 +257,8 @@ async def export_excel(
                 'valign': 'vcenter'
             })
 
-            # Write title with filter info
-            title_format = workbook.add_format({
-                'bold': True,
-                'font_size': 12,
-                'align': 'left'
-            })
-            
+            # Write report information (first 3 rows)
             row = 0
-            # Add filter information
             if imei:
                 worksheet.write(row, 0, f'Device IMEI: {imei}', title_format)
                 row += 1
@@ -259,13 +266,25 @@ async def export_excel(
                 worksheet.write(row, 0, f'Period: {start_date} to {end_date}', title_format)
                 row += 1
             worksheet.write(row, 0, f'Generated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}', title_format)
-            row += 2
 
-            # Write headers with format
+            # Write main headers (row 4)
+            row = 4
+            headers = ['Device Information', 'Location Data', 'Status', '', '', 'System', '', '', '']
+            header_spans = [2, 2, 2, 0, 0, 3, 0, 0, 0]  # 0 means merge into previous
+            
+            current_col = 0
+            for header, span in zip(headers, header_spans):
+                if span > 0:
+                    worksheet.merge_range(row, current_col, row, current_col + span - 1, header, header_format)
+                    current_col += span
+
+            # Write subheaders (row 5)
+            row = 5
             for col_num, value in enumerate(df.columns.values):
-                worksheet.write(row, col_num, value, header_format)
+                worksheet.write(row, col_num, value, subheader_format)
 
-            # Write data starting after headers
+            # Format the data
+            data_rows = len(df) + 6  # +6 because data starts at row 6
             for col_num, value in enumerate(df.columns.values):
                 # Calculate column width
                 max_length = max(
