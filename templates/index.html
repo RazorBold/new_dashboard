@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 
+{% block head_extra %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+{% endblock %}
+
 {% block content %}
 <!-- Info Boxes -->
 <div class="row mb-4">
@@ -182,6 +186,7 @@
                         <th>Type</th>
                         <th>Timestamp</th>
                         <th>Location</th>
+                        <th>Major/Minor</th>
                         <th>Battery</th>
                     </tr>
                 </thead>
@@ -193,17 +198,29 @@
                         <td>{{ item.payload_id_2 }}</td>
                         <td>{{ item.timestamp }}</td>
                         <td>
-                            {% if item.latitude and item.longitude %}
-                            {{ item.latitude }}, {{ item.longitude }}
+                            {% if item.payload_id_2 == 'GNSS' and item.latitude and item.longitude %}
+                                {{ item.latitude }}, {{ item.longitude }}
+                            {% elif item.payload_id_2 == 'Beacon' and item.location_name %}
+                                {{ item.location_name }}
+                                {% if item.beacon_name %}
+                                    <br><small class="text-muted">({{ item.beacon_name }})</small>
+                                {% endif %}
                             {% else %}
-                            -
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.payload_id_2 == 'Beacon' %}
+                                {{ item.Major or '-' }}/{{ item.Minor or '-' }}
+                            {% else %}
+                                -
                             {% endif %}
                         </td>
                         <td>
                             {% if item.voltage %}
-                            {{ item.voltage }}V ({{ item.persentase_baterai }}%)
+                                {{ item.voltage }}V ({{ item.persentase_baterai }}%)
                             {% else %}
-                            -
+                                -
                             {% endif %}
                         </td>
                     </tr>
@@ -259,7 +276,6 @@
     </div>
 </div>
 
-{% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize map
@@ -278,6 +294,46 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => map.invalidateSize(), 100);
 
     const markers = new Map();
+    const beaconMarkers = new Map();
+
+    // Add a function to fetch and display beacons
+    async function loadBeacons() {
+        try {
+            const response = await fetch('/beacons');
+            const data = await response.json();
+            
+            if (data.data) {
+                data.data.forEach(beacon => {
+                    if (beacon.latitude && beacon.longitude) {
+                        const beaconMarker = L.circleMarker(
+                            [beacon.latitude, beacon.longitude],
+                            {
+                                radius: 8,
+                                fillColor: '#2196F3',
+                                color: '#1976D2',
+                                weight: 2,
+                                opacity: 1,
+                                fillOpacity: 0.8
+                            }
+                        ).addTo(map);
+                        
+                        beaconMarker.bindPopup(`
+                            <div class="beacon-marker">
+                                <strong>${beacon.name}</strong><br>
+                                Location: ${beacon.location_name}<br>
+                                Major: ${beacon.major}<br>
+                                Minor: ${beacon.minor}
+                            </div>
+                        `);
+                        
+                        beaconMarkers.set(`${beacon.major}-${beacon.minor}`, beaconMarker);
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Error loading beacons:', error);
+        }
+    }
 
     async function getLatestDevicePosition(imei) {
         try {
@@ -299,6 +355,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function updateMap() {
+        // Clear existing device markers
+        markers.forEach(marker => map.removeLayer(marker));
+        markers.clear();
+
+        // Don't clear beacon markers as they are static
+        
         const imei = document.getElementById('deviceSelect').value;
         const startDate = document.querySelector('[name="start_date"]').value;
         const endDate = document.querySelector('[name="end_date"]').value;
@@ -403,7 +465,10 @@ document.addEventListener('DOMContentLoaded', function() {
         bounds.push([gpsData.latitude, gpsData.longitude]);
     }
 
-    // Update map on load and form submit
+    // Load beacons when page loads
+    loadBeacons();
+    
+    // Update map with device locations
     updateMap();
     
     document.getElementById('deviceFilterForm').addEventListener('submit', function(e) {
@@ -426,9 +491,4 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
-{% endblock %}
-{% endblock %}
-
-{% block head_extra %}
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 {% endblock %}
