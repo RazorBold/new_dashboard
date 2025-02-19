@@ -135,3 +135,40 @@ async def get_latest_heartbeat(imei: str):
             "battery_percentage": data.get('persentase_baterai')
         }
     }
+
+@app.get("/beacons")
+async def get_beacons():
+    data = db.get_all_beacon_data()
+    if data is None:
+        raise HTTPException(status_code=500, detail="Failed to fetch beacon data")
+    return {"data": data, "total": len(data)}
+
+@app.get("/beacon-location")
+async def get_beacon_location(major: str, minor: str):
+    data = db.get_beacon_location(major, minor)
+    if data is None:
+        raise HTTPException(status_code=404, detail="Beacon location not found")
+    return {"data": data}
+
+@app.get("/registration/beacon-data")
+async def get_beacon_registrations(
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+    imei: Optional[str] = None
+):
+    """Get registration data filtered for beacon type only"""
+    try:
+        data = db.get_beacon_registration_data(imei, start_date, end_date)
+        if data is None:
+            raise HTTPException(status_code=404, detail="Beacon registration data not found")
+        return {
+            "data": data,
+            "meta": {
+                "total_records": len(data) if data else 0,
+                "imei": imei,
+                "start_date": start_date.strftime('%Y-%m-%d %H:%M:%S') if start_date else None,
+                "end_date": end_date.strftime('%Y-%m-%d %H:%M:%S') if end_date else None
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
