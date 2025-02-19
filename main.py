@@ -306,7 +306,7 @@ async def export_excel(
         return StreamingResponse(
             output,
             media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            headers={'Content-Disposition': f'attachment; filename="{filename}"'}
+            headers={'            curl "http://127.0.0.1:5003/registrati            curl "http://127.0.0.1:5003/registration/beacon-data?imei=860137071625429"-Disposition': f'attachment; filename="{filename}"'}
         )
         
     except Exception as e:
