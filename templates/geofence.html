@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Geofence Management</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-8">
+                <div id="geofenceMap" style="height: 500px; border-radius: 10px;"></div>
+            </div>
+            <div class="col-md-4">
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">Create New Geofence</h6>
+                    </div>
+                    <div class="card-body">
+                        <form id="geofenceForm">
+                            <div class="mb-3">
+                                <label class="form-label">Name</label>
+                                <input type="text" class="form-control" id="geofenceName" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Description</label>
+                                <textarea class="form-control" id="geofenceDescription" rows="2"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Selected Area Points</label>
+                                <div id="coordinatesList" class="list-group small"></div>
+                            </div>
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>Save Geofence
+                                </button>
+                                <button type="button" class="btn btn-secondary" id="resetDrawing">
+                                    <i class="fas fa-undo me-2"></i>Reset Drawing
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">Existing Geofences</h6>
+                        <button class="btn btn-sm btn-outline-primary" id="refreshGeofences">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                    <div class="list-group list-group-flush" id="geofenceList">
+                        <!-- Geofences will be listed here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize map
+    const map = L.map('geofenceMap').setView([-6.2088, 106.8456], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Initialize drawing features
+    const drawnItems = new L.FeatureGroup();
+    map.addLayer(drawnItems);
+
+    const drawControl = new L.Control.Draw({
+        draw: {
+            marker: false,
+            circlemarker: false,
+            circle: false,
+            polyline: false,
+            rectangle: true,
+            polygon: true,
+        },
+        edit: {
+            featureGroup: drawnItems
+        }
+    });
+    map.addControl(drawControl);
+
+    // Handle drawing events
+    map.on('draw:created', function(e) {
+        drawnItems.clearLayers();
+        const layer = e.layer;
+        drawnItems.addLayer(layer);
+        updateCoordinatesList(layer);
+    });
+
+    function updateCoordinatesList(layer) {
+        const coords = layer.getLatLngs()[0];
+        const list = document.getElementById('coordinatesList');
+        list.innerHTML = '';
+        
+        coords.forEach((coord, index) => {
+            const item = document.createElement('div');
+            item.className = 'list-group-item py-1';
+            item.textContent = `Point ${index + 1}: ${coord.lat.toFixed(6)}, ${coord.lng.toFixed(6)}`;
+            list.appendChild(item);
+        });
+    }
+
+    // Handle form submission
+    document.getElementById('geofenceForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        if (drawnItems.getLayers().length === 0) {
+            alert('Please draw a geofence area on the map');
+            return;
+        }
+
+        const layer = drawnItems.getLayers()[0];
+        const geofenceData = {
+            name: document.getElementById('geofenceName').value,
+            description: document.getElementById('geofenceDescription').value,
+            coordinates: layer.getLatLngs()[0].map(coord => ({
+                lat: coord.lat,
+                lng: coord.lng
+            }))
+        };
+
+        try {
+            const response = await fetch('/api/geofence', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(geofenceData)
+            });
+
+            if (response.ok) {
+                alert('Geofence saved successfully');
+                loadGeofences();
+                resetForm();
+            } else {
+                alert('Failed to save geofence');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error saving geofence');
+        }
+    });
+
+    function resetForm() {
+        document.getElementById('geofenceForm').reset();
+        drawnItems.clearLayers();
+        document.getElementById('coordinatesList').innerHTML = '';
+    }
+
+    document.getElementById('resetDrawing').addEventListener('click', resetForm);
+
+    async function loadGeofences() {
+        try {
+            const response = await fetch('/api/geofence');
+            const geofences = await response.json();
+            
+            const list = document.getElementById('geofenceList');
+            list.innerHTML = '';
+
+            geofences.forEach(fence => {
+                const item = document.createElement('div');
+                item.className = 'list-group-item';
+                item.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">${fence.name}</h6>
+                            <small class="text-muted">${fence.description || 'No description'}</small>
+                        </div>
+                        <button class="btn btn-sm btn-outline-danger delete-fence" data-id="${fence.id}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+        } catch (error) {
+            console.error('Error loading geofences:', error);
+        }
+    }
+
+    // Load existing geofences when page loads
+    loadGeofences();
+    
+    // Add refresh button handler
+    document.getElementById('refreshGeofences').addEventListener('click', loadGeofences);
+});
+</script>
+{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+{% endblock %}
