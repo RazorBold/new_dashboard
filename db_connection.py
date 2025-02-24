@@ -1,24 +1,55 @@
 import pymysql
+from sshtunnel import SSHTunnelForwarder
 from datetime import datetime, timedelta
 
-def get_db_connection():
+def create_ssh_tunnel():
+    # Konfigurasi SSH
+    ssh_config = {
+        'ssh_host': '36.92.168.182',
+        'ssh_port': 22,
+        'ssh_username': 'nociot',
+        'ssh_password': 'telkom!@#321',
+    }
+
+    # Konfigurasi Database
+    db_config = {
+        'db_host': 'localhost',
+        'db_port': 3306,
+        'db_name': 'lansitec_cat1',
+        'db_user': 'admin',
+        'db_password': 'Wow0w0!2025'
+    }
+
     try:
-        # Konfigurasi Database
-        connection = pymysql.connect(
-            host='127.0.0.1',
-            port=3306,
-            database='lansitec_cat1',
-            user='admin',
-            password='Wow0w0!2025'
+        # Membuat SSH tunnel
+        tunnel = SSHTunnelForwarder(
+            (ssh_config['ssh_host'], ssh_config['ssh_port']),
+            ssh_username=ssh_config['ssh_username'],
+            ssh_password=ssh_config['ssh_password'],
+            remote_bind_address=('127.0.0.1', db_config['db_port'])
         )
-        return connection
+        
+        # Memulai tunnel
+        tunnel.start()
+
+        # Membuat koneksi database melalui tunnel
+        connection = pymysql.connect(
+            host=db_config['db_host'],
+            port=tunnel.local_bind_port,
+            user=db_config['db_user'],
+            password=db_config['db_password'],
+            database=db_config['db_name']
+        )
+
+        return tunnel, connection
+
     except Exception as e:
-        print(f"Error connecting to database: {str(e)}")
-        return None
+        print(f"Error saat membuat koneksi: {str(e)}")
+        return None, None
 
 def get_all_registration_data():
-    connection = get_db_connection()
-    if connection is None:
+    tunnel, connection = create_ssh_tunnel()
+    if tunnel is None or connection is None:
         return None
     
     try:
@@ -48,11 +79,12 @@ def get_all_registration_data():
         return None
     finally:
         connection.close()
+        tunnel.close()
 
 def insert_device_data(imei, serial_number):
-    connection = get_db_connection()
+    tunnel, connection = create_ssh_tunnel()
     
-    if connection is None:
+    if tunnel is None or connection is None:
         print("Failed to establish connection")
         return False
     
@@ -69,11 +101,12 @@ def insert_device_data(imei, serial_number):
         
     finally:
         connection.close()
+        tunnel.close()
 
 def get_device_count():
-    connection = get_db_connection()
+    tunnel, connection = create_ssh_tunnel()
     
-    if connection is None:
+    if tunnel is None or connection is None:
         print("Failed to establish connection")
         return 0
     
@@ -90,10 +123,11 @@ def get_device_count():
         
     finally:
         connection.close()
+        tunnel.close()
 
 def get_all_devices():
-    connection = get_db_connection()
-    if connection is None:
+    tunnel, connection = create_ssh_tunnel()
+    if tunnel is None or connection is None:
         return []
     
     try:
@@ -107,10 +141,11 @@ def get_all_devices():
         return []
     finally:
         connection.close()
+        tunnel.close()
 
 def get_registration_data_by_imei(imei=None):
-    connection = get_db_connection()
-    if connection is None:
+    tunnel, connection = create_ssh_tunnel()
+    if tunnel is None or connection is None:
         return None
     
     try:
@@ -129,10 +164,11 @@ def get_registration_data_by_imei(imei=None):
         return None
     finally:
         connection.close()
+        tunnel.close()
 
 def get_registration_data_by_date_range(imei, start_date, end_date):
-    connection = get_db_connection()
-    if connection is None:
+    tunnel, connection = create_ssh_tunnel()
+    if tunnel is None or connection is None:
         return None
     
     try:
@@ -165,10 +201,11 @@ def get_registration_data_by_date_range(imei, start_date, end_date):
         return None
     finally:
         connection.close()
+        tunnel.close()
 
 def get_latest_gps_data(imei):
-    connection = get_db_connection()
-    if connection is None:
+    tunnel, connection = create_ssh_tunnel()
+    if tunnel is None or connection is None:
         return None
     
     try:
@@ -190,10 +227,11 @@ def get_latest_gps_data(imei):
         return None
     finally:
         connection.close()
+        tunnel.close()
 
 def get_gps_data_by_date_range(imei, start_date, end_date):
-    connection = get_db_connection()
-    if connection is None:
+    tunnel, connection = create_ssh_tunnel()
+    if tunnel is None or connection is None:
         return None
     
     try:
@@ -225,10 +263,11 @@ def get_gps_data_by_date_range(imei, start_date, end_date):
         return None
     finally:
         connection.close()
+        tunnel.close()
 
 def get_non_gps_data_by_date_range(imei, start_date, end_date):
-    connection = get_db_connection()
-    if connection is None:
+    tunnel, connection = create_ssh_tunnel()
+    if tunnel is None or connection is None:
         return None
     
     try:
@@ -260,10 +299,11 @@ def get_non_gps_data_by_date_range(imei, start_date, end_date):
         return None
     finally:
         connection.close()
+        tunnel.close()
 
 def get_latest_heartbeat(imei):
-    connection = get_db_connection()
-    if connection is None:
+    tunnel, connection = create_ssh_tunnel()
+    if tunnel is None or connection is None:
         return None
     
     try:
@@ -291,10 +331,11 @@ def get_latest_heartbeat(imei):
         return None
     finally:
         connection.close()
+        tunnel.close()
 
 def get_latest_data_by_imei(imei):
-    connection = get_db_connection()
-    if connection is None:
+    tunnel, connection = create_ssh_tunnel()
+    if tunnel is None or connection is None:
         return None
     
     try:
@@ -319,18 +360,19 @@ def get_latest_data_by_imei(imei):
         return None
     finally:
         connection.close()
+        tunnel.close()
 
 def get_registration_data_by_imei(imei):
-    connection = get_db_connection()
-    if connection is None:
+    tunnel, connection = create_ssh_tunnel()
+    if tunnel is None or connection is None:
         return None
     
     try:
         with connection.cursor() as cursor:
             sql = """
-                SELECT id, payload_id_1, payload_id_2, timestamp,
-                       longitude, latitude, voltage, persentase_baterai,
-                       Major, Minor, alarm
+                SELECT id, payload_id_1, payload_id_2, parsed_data,
+                       longitude, latitude, timestamp, voltage,
+                       persentase_baterai, alarm
                 FROM registration 
                 WHERE payload_id_1 = %s
                 ORDER BY timestamp DESC
@@ -344,14 +386,6 @@ def get_registration_data_by_imei(imei):
                 row_dict = dict(zip(column_names, row))
                 if row_dict.get('timestamp'):
                     row_dict['timestamp'] = row_dict['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
-                
-                # Get beacon location info if it's a beacon record
-                if row_dict.get('payload_id_2') == 'Beacon' and row_dict.get('Major') and row_dict.get('Minor'):
-                    beacon_info = get_beacon_location(row_dict['Major'], row_dict['Minor'])
-                    if beacon_info:
-                        row_dict['beacon_name'] = beacon_info.get('name')
-                        row_dict['location_name'] = beacon_info.get('location_name')
-                
                 formatted_result.append(row_dict)
             
             return formatted_result
@@ -361,10 +395,11 @@ def get_registration_data_by_imei(imei):
         return None
     finally:
         connection.close()
+        tunnel.close()
 
 def get_all_registration_data_by_date_range(start_date, end_date):
-    connection = get_db_connection()
-    if connection is None:
+    tunnel, connection = create_ssh_tunnel()
+    if tunnel is None or connection is None:
         return None
     
     try:
@@ -395,10 +430,11 @@ def get_all_registration_data_by_date_range(start_date, end_date):
         return None
     finally:
         connection.close()
+        tunnel.close()
 
 def get_all_beacon_data():
-    connection = get_db_connection()
-    if connection is None:
+    tunnel, connection = create_ssh_tunnel()
+    if tunnel is None or connection is None:
         return None
     
     try:
@@ -424,10 +460,11 @@ def get_all_beacon_data():
         return None
     finally:
         connection.close()
+        tunnel.close()
 
 def get_beacon_location(major, minor):
-    connection = get_db_connection()
-    if connection is None:
+    tunnel, connection = create_ssh_tunnel()
+    if tunnel is None or connection is None:
         return None
     
     try:
@@ -450,48 +487,31 @@ def get_beacon_location(major, minor):
         return None
     finally:
         connection.close()
+        tunnel.close()
 
-def extract_major_minor(parsed_data):
-    try:
-        if not parsed_data:
-            return None, None
-        
-        # Common patterns for beacon data
-        if "Major:" in parsed_data and "Minor:" in parsed_data:
-            parts = parsed_data.split(',')
-            for part in parts:
-                if "Major:" in part and "Minor:" in part:
-                    # Example format: "Major:1234/Minor:5678"
-                    major_minor = part.strip().split('/')
-                    major = major_minor[0].split(':')[1].strip()
-                    minor = major_minor[1].split(':')[1].strip()
-                    return major, minor
-                    
-        return None, None
-    except Exception as e:
-        print(f"Error parsing Major/Minor: {str(e)}")
-        return None, None
 
 def get_beacon_registration_data(imei=None, start_date=None, end_date=None):
-    connection = get_db_connection()
-    if connection is None:
+    tunnel, connection = create_ssh_tunnel()
+    if tunnel is None or connection is None:
         return None
     
     try:
         with connection.cursor() as cursor:
             sql = """
-                SELECT id, payload_id_1, payload_id_2, timestamp, 
-                       Major, Minor, voltage, persentase_baterai,
-                       alarm, latitude, longitude
+                SELECT id, payload_id_1, payload_id_2, parsed_data,
+                       longitude, latitude, timestamp, voltage,
+                       persentase_baterai, alarm
                 FROM registration 
                 WHERE payload_id_2 = 'Beacon'
             """
             params = []
             
+            # Add IMEI filter if provided
             if imei:
                 sql += " AND payload_id_1 = %s"
                 params.append(imei)
             
+            # Add date range filter if provided
             if start_date and end_date:
                 sql += " AND timestamp BETWEEN %s AND %s"
                 params.extend([start_date, end_date])
@@ -507,14 +527,6 @@ def get_beacon_registration_data(imei=None, start_date=None, end_date=None):
                 row_dict = dict(zip(column_names, row))
                 if row_dict.get('timestamp'):
                     row_dict['timestamp'] = row_dict['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
-                
-                # Get beacon location info if available
-                if row_dict.get('Major') and row_dict.get('Minor'):
-                    beacon_info = get_beacon_location(row_dict['Major'], row_dict['Minor'])
-                    if beacon_info:
-                        row_dict['beacon_name'] = beacon_info.get('name')
-                        row_dict['location_name'] = beacon_info.get('location_name')
-                
                 formatted_result.append(row_dict)
             
             return formatted_result
@@ -524,6 +536,198 @@ def get_beacon_registration_data(imei=None, start_date=None, end_date=None):
         return None
     finally:
         connection.close()
+        tunnel.close()
+
+def get_service_tanto_data():
+    tunnel, connection = create_ssh_tunnel()
+    if tunnel is None or connection is None:
+        return None
+    
+    try:
+        with connection.cursor() as cursor:
+            sql = """
+                WITH RankedData AS (
+                    SELECT id, id_container, last_activity, 
+                           date,  -- Remove DATE_FORMAT since it's already a string
+                           DATE_FORMAT(created_time, '%Y-%m-%d %H:%i:%s') as created_time,
+                           ROW_NUMBER() OVER (PARTITION BY id_container ORDER BY created_time DESC) as rn
+                    FROM service_tanto
+                )
+                SELECT id, id_container, last_activity, date, created_time
+                FROM RankedData
+                WHERE rn = 1
+                ORDER BY created_time DESC
+            """
+            cursor.execute(sql)
+            result = cursor.fetchall()
+            column_names = [desc[0] for desc in cursor.description]
+            formatted_result = []
+            
+            for row in result:
+                row_dict = dict(zip(column_names, row))
+                # Don't try to format the date field since it's already a string
+                formatted_result.append(row_dict)
+            
+            return formatted_result
+            
+    except Exception as e:
+        print(f"Error getting service tanto data: {str(e)}")
+        return None
+    finally:
+        connection.close()
+        tunnel.close()
+
+def get_latest_container_activities():
+    tunnel, connection = create_ssh_tunnel()
+    if tunnel is None or connection is None:
+        return None
+    
+    try:
+        with connection.cursor() as cursor:
+            sql = """
+                WITH RankedData AS (
+                    SELECT id_container, last_activity, created_time,
+                           ROW_NUMBER() OVER (PARTITION BY id_container ORDER BY created_time DESC) as rn
+                    FROM service_tanto
+                )
+                SELECT id_container, 
+                       COALESCE(last_activity, 'No Activity') as last_activity,
+                       created_time
+                FROM RankedData
+                WHERE rn = 1
+                ORDER BY created_time DESC
+            """
+            cursor.execute(sql)
+            result = cursor.fetchall()
+            column_names = [desc[0] for desc in cursor.description]
+            
+            # Create a dictionary with container ID as key
+            container_activities = {}
+            for row in result:
+                row_dict = dict(zip(column_names, row))
+                container_activities[row_dict['id_container']] = row_dict['last_activity']
+            
+            return container_activities
+            
+    except Exception as e:
+        print(f"Error getting container activities: {str(e)}")
+        return None
+    finally:
+        connection.close()
+        tunnel.close()
+
+def get_all_devices_with_activity():
+    tunnel, connection = create_ssh_tunnel()
+    if tunnel is None or connection is None:
+        return []
+    
+    try:
+        # Get all devices
+        devices = get_all_devices()
+        if not devices:
+            return []
+            
+        # Get container activities
+        container_activities = get_latest_container_activities()
+        if not container_activities:
+            container_activities = {}
+        
+        # Merge device info with container activity
+        for device in devices:
+            device['last_activity'] = container_activities.get(device['serial_number'], 'No Activity')
+            
+        return devices
+            
+    except Exception as e:
+        print(f"Error getting devices with activities: {str(e)}")
+        return []
+
+def get_device_by_imei(imei):
+    tunnel, connection = create_ssh_tunnel()
+    if tunnel is None or connection is None:
+        return None
+    
+    try:
+        with connection.cursor() as cursor:
+            sql = "SELECT imei, serial_number FROM device WHERE imei = %s"
+            cursor.execute(sql, (imei,))
+            result = cursor.fetchone()
+            if result:
+                return {'imei': result[0], 'serial_number': result[1]}
+            return None
+    except Exception as e:
+        print(f"Error getting device: {str(e)}")
+        return None
+    finally:
+        connection.close()
+        tunnel.close()
+
+def get_container_activity(serial_number):
+    tunnel, connection = create_ssh_tunnel()
+    if tunnel is None or connection is None:
+        return None
+    
+    try:
+        with connection.cursor() as cursor:
+            sql = """
+                SELECT last_activity 
+                FROM service_tanto 
+                WHERE id_container = %s 
+                ORDER BY created_time DESC 
+                LIMIT 1
+            """
+            cursor.execute(sql, (serial_number,))
+            result = cursor.fetchone()
+            return result[0] if result else None
+    except Exception as e:
+        print(f"Error getting container activity: {str(e)}")
+        return None
+    finally:
+        connection.close()
+        tunnel.close()
+
+def get_all_devices_activities():
+    tunnel, connection = create_ssh_tunnel()
+    if tunnel is None or connection is None:
+        return []
+    
+    try:
+        # Get all devices first
+        devices = get_all_devices()
+        if not devices:
+            return []
+        
+        # Get all container activities in one query
+        with connection.cursor() as cursor:
+            placeholders = ', '.join(['%s'] * len(devices))
+            serial_numbers = [d['serial_number'] for d in devices]
+            
+            sql = f"""
+                WITH RankedActivities AS (
+                    SELECT id_container, last_activity,
+                           ROW_NUMBER() OVER (PARTITION BY id_container ORDER BY created_time DESC) as rn
+                    FROM service_tanto
+                    WHERE id_container IN ({placeholders})
+                )
+                SELECT id_container, last_activity
+                FROM RankedActivities
+                WHERE rn = 1
+            """
+            cursor.execute(sql, serial_numbers)
+            activities = {row[0]: row[1] for row in cursor.fetchall()}
+        
+        # Merge device info with activities
+        for device in devices:
+            device['last_activity'] = activities.get(device['serial_number'], 'No Activity')
+        
+        return devices
+            
+    except Exception as e:
+        print(f"Error getting all device activities: {str(e)}")
+        return []
+    finally:
+        connection.close()
+        tunnel.close()
 
 if __name__ == "__main__":
     # Mengambil dan menampilkan data
