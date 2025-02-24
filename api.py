@@ -249,10 +249,44 @@ async def get_all_device_activities():
         "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     }
 
+@app.post("/api/geofence")
+async def create_geofence(geofence: dict):
+    """Create a new geofence area"""
+    try:
+        success = db.save_geofence(
+            name=geofence['name'],
+            coordinates=geofence['coordinates'],
+            description=geofence.get('description')
+        )
+        
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to save geofence")
+        
+        return {"message": "Geofence saved successfully"}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error saving geofence: {str(e)}")
+
+@app.get("/api/geofence")
+async def get_geofences():
+    data = db.get_all_geofences()
+    if data is None:
+        raise HTTPException(status_code=500, detail="Failed to fetch geofences")
+    return data
+
 @app.get("/reverse-geocode")
 async def get_address(lat: float, lng: float):
-    """Get street name and city from coordinates using Google Maps API"""
+    """Get location name (geofence or street address) for coordinates"""
     try:
+        # First check if point is in any geofence
+        geofence_name = db.check_point_in_geofence(lat, lng)
+        if geofence_name:
+            return {
+                "street_name": geofence_name,
+                "full_address": f"Inside {geofence_name} Area"
+            }
+        
+        # If not in geofence, get street address from Google Maps
         url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lng}&key={GOOGLE_MAPS_API_KEY}"
         response = requests.get(url)
         data = response.json()
