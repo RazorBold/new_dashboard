@@ -73,7 +73,7 @@ async def dashboard(
                     'voltage': heartbeat.get('voltage'),
                     'persentase_baterai': heartbeat.get('persentase_baterai'),
                     'timestamp': last_data.get('timestamp'),
-                    'is_online': (datetime.now() - datetime.strptime(last_data['timestamp'], '%Y-%m-%d %H:%M:%S')).total_seconds() < 3600
+                    'is_online': (datetime.now() - datetime.strptime(last_data['timestamp'], '%Y-%m-%d %H:%M:%S')).total_seconds() < 86400  # 24 hours
                 }
             
             # Get filtered data by date range if specified
