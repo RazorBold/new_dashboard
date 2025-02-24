@@ -1,57 +1,35 @@
 import pymysql
-from sshtunnel import SSHTunnelForwarder
 from datetime import datetime, timedelta
-import json  # Add this import at the top with other imports
-from shapely.geometry import Point, Polygon  # Add this import
+import json
+from shapely.geometry import Point, Polygon
 
-def create_ssh_tunnel():
-    # Konfigurasi SSH
-    ssh_config = {
-        'ssh_host': '36.92.168.182',
-        'ssh_port': 22,
-        'ssh_username': 'nociot',
-        'ssh_password': 'telkom!@#321',
-    }
-
+def create_connection():
     # Konfigurasi Database
     db_config = {
-        'db_host': 'localhost',
-        'db_port': 3306,
-        'db_name': 'lansitec_cat1',
-        'db_user': 'admin',
-        'db_password': 'Wow0w0!2025'
+        'host': 'localhost',
+        'port': 3306,
+        'database': 'lansitec_cat1',
+        'user': 'admin',
+        'password': 'Wow0w0!2025'
     }
 
     try:
-        # Membuat SSH tunnel
-        tunnel = SSHTunnelForwarder(
-            (ssh_config['ssh_host'], ssh_config['ssh_port']),
-            ssh_username=ssh_config['ssh_username'],
-            ssh_password=ssh_config['ssh_password'],
-            remote_bind_address=('127.0.0.1', db_config['db_port'])
-        )
-        
-        # Memulai tunnel
-        tunnel.start()
-
-        # Membuat koneksi database melalui tunnel
         connection = pymysql.connect(
-            host=db_config['db_host'],
-            port=tunnel.local_bind_port,
-            user=db_config['db_user'],
-            password=db_config['db_password'],
-            database=db_config['db_name']
+            host=db_config['host'],
+            port=db_config['port'],
+            user=db_config['user'],
+            password=db_config['password'],
+            database=db_config['database']
         )
-
-        return tunnel, connection
+        return connection
 
     except Exception as e:
         print(f"Error saat membuat koneksi: {str(e)}")
-        return None, None
+        return None
 
 def get_all_registration_data():
-    tunnel, connection = create_ssh_tunnel()
-    if tunnel is None or connection is None:
+    connection = create_connection()
+    if connection is None:
         return None
     
     try:
@@ -81,12 +59,11 @@ def get_all_registration_data():
         return None
     finally:
         connection.close()
-        tunnel.close()
 
 def insert_device_data(imei, serial_number):
-    tunnel, connection = create_ssh_tunnel()
+    connection = create_connection()
     
-    if tunnel is None or connection is None:
+    if connection is None:
         print("Failed to establish connection")
         return False
     
@@ -103,12 +80,11 @@ def insert_device_data(imei, serial_number):
         
     finally:
         connection.close()
-        tunnel.close()
 
 def get_device_count():
-    tunnel, connection = create_ssh_tunnel()
+    connection = create_connection()
     
-    if tunnel is None or connection is None:
+    if connection is None:
         print("Failed to establish connection")
         return 0
     
@@ -125,11 +101,10 @@ def get_device_count():
         
     finally:
         connection.close()
-        tunnel.close()
 
 def get_all_devices():
-    tunnel, connection = create_ssh_tunnel()
-    if tunnel is None or connection is None:
+    connection = create_connection()
+    if connection is None:
         return []
     
     try:
@@ -143,11 +118,10 @@ def get_all_devices():
         return []
     finally:
         connection.close()
-        tunnel.close()
 
 def get_registration_data_by_imei(imei=None):
-    tunnel, connection = create_ssh_tunnel()
-    if tunnel is None or connection is None:
+    connection = create_connection()
+    if connection is None:
         return None
     
     try:
@@ -166,11 +140,10 @@ def get_registration_data_by_imei(imei=None):
         return None
     finally:
         connection.close()
-        tunnel.close()
 
 def get_registration_data_by_date_range(imei, start_date, end_date):
-    tunnel, connection = create_ssh_tunnel()
-    if tunnel is None or connection is None:
+    connection = create_connection()
+    if connection is None:
         return None
     
     try:
@@ -203,11 +176,10 @@ def get_registration_data_by_date_range(imei, start_date, end_date):
         return None
     finally:
         connection.close()
-        tunnel.close()
 
 def get_latest_gps_data(imei):
-    tunnel, connection = create_ssh_tunnel()
-    if tunnel is None or connection is None:
+    connection = create_connection()
+    if connection is None:
         return None
     
     try:
@@ -229,11 +201,10 @@ def get_latest_gps_data(imei):
         return None
     finally:
         connection.close()
-        tunnel.close()
 
 def get_gps_data_by_date_range(imei, start_date, end_date):
-    tunnel, connection = create_ssh_tunnel()
-    if tunnel is None or connection is None:
+    connection = create_connection()
+    if connection is None:
         return None
     
     try:
@@ -265,11 +236,10 @@ def get_gps_data_by_date_range(imei, start_date, end_date):
         return None
     finally:
         connection.close()
-        tunnel.close()
 
 def get_non_gps_data_by_date_range(imei, start_date, end_date):
-    tunnel, connection = create_ssh_tunnel()
-    if tunnel is None or connection is None:
+    connection = create_connection()
+    if connection is None:
         return None
     
     try:
@@ -301,11 +271,10 @@ def get_non_gps_data_by_date_range(imei, start_date, end_date):
         return None
     finally:
         connection.close()
-        tunnel.close()
 
 def get_latest_heartbeat(imei):
-    tunnel, connection = create_ssh_tunnel()
-    if tunnel is None or connection is None:
+    connection = create_connection()
+    if connection is None:
         return None
     
     try:
@@ -333,11 +302,10 @@ def get_latest_heartbeat(imei):
         return None
     finally:
         connection.close()
-        tunnel.close()
 
 def get_latest_data_by_imei(imei):
-    tunnel, connection = create_ssh_tunnel()
-    if tunnel is None or connection is None:
+    connection = create_connection()
+    if connection is None:
         return None
     
     try:
@@ -362,11 +330,10 @@ def get_latest_data_by_imei(imei):
         return None
     finally:
         connection.close()
-        tunnel.close()
 
 def get_registration_data_by_imei(imei):
-    tunnel, connection = create_ssh_tunnel()
-    if tunnel is None or connection is None:
+    connection = create_connection()
+    if connection is None:
         return None
     
     try:
@@ -397,11 +364,10 @@ def get_registration_data_by_imei(imei):
         return None
     finally:
         connection.close()
-        tunnel.close()
 
 def get_all_registration_data_by_date_range(start_date, end_date):
-    tunnel, connection = create_ssh_tunnel()
-    if tunnel is None or connection is None:
+    connection = create_connection()
+    if connection is None:
         return None
     
     try:
@@ -432,11 +398,10 @@ def get_all_registration_data_by_date_range(start_date, end_date):
         return None
     finally:
         connection.close()
-        tunnel.close()
 
 def get_all_beacon_data():
-    tunnel, connection = create_ssh_tunnel()
-    if tunnel is None or connection is None:
+    connection = create_connection()
+    if connection is None:
         return None
     
     try:
@@ -462,11 +427,10 @@ def get_all_beacon_data():
         return None
     finally:
         connection.close()
-        tunnel.close()
 
 def get_beacon_location(major, minor):
-    tunnel, connection = create_ssh_tunnel()
-    if tunnel is None or connection is None:
+    connection = create_connection()
+    if connection is None:
         return None
     
     try:
@@ -489,12 +453,10 @@ def get_beacon_location(major, minor):
         return None
     finally:
         connection.close()
-        tunnel.close()
-
 
 def get_beacon_registration_data(imei=None, start_date=None, end_date=None):
-    tunnel, connection = create_ssh_tunnel()
-    if tunnel is None or connection is None:
+    connection = create_connection()
+    if connection is None:
         return None
     
     try:
@@ -538,11 +500,10 @@ def get_beacon_registration_data(imei=None, start_date=None, end_date=None):
         return None
     finally:
         connection.close()
-        tunnel.close()
 
 def get_service_tanto_data():
-    tunnel, connection = create_ssh_tunnel()
-    if tunnel is None or connection is None:
+    connection = create_connection()
+    if connection is None:
         return None
     
     try:
@@ -577,11 +538,10 @@ def get_service_tanto_data():
         return None
     finally:
         connection.close()
-        tunnel.close()
 
 def get_latest_container_activities():
-    tunnel, connection = create_ssh_tunnel()
-    if tunnel is None or connection is None:
+    connection = create_connection()
+    if connection is None:
         return None
     
     try:
@@ -616,11 +576,10 @@ def get_latest_container_activities():
         return None
     finally:
         connection.close()
-        tunnel.close()
 
 def get_all_devices_with_activity():
-    tunnel, connection = create_ssh_tunnel()
-    if tunnel is None or connection is None:
+    connection = create_connection()
+    if connection is None:
         return []
     
     try:
@@ -645,8 +604,8 @@ def get_all_devices_with_activity():
         return []
 
 def get_device_by_imei(imei):
-    tunnel, connection = create_ssh_tunnel()
-    if tunnel is None or connection is None:
+    connection = create_connection()
+    if connection is None:
         return None
     
     try:
@@ -662,11 +621,10 @@ def get_device_by_imei(imei):
         return None
     finally:
         connection.close()
-        tunnel.close()
 
 def get_container_activity(serial_number):
-    tunnel, connection = create_ssh_tunnel()
-    if tunnel is None or connection is None:
+    connection = create_connection()
+    if connection is None:
         return None
     
     try:
@@ -686,11 +644,10 @@ def get_container_activity(serial_number):
         return None
     finally:
         connection.close()
-        tunnel.close()
 
 def get_all_devices_activities():
-    tunnel, connection = create_ssh_tunnel()
-    if tunnel is None or connection is None:
+    connection = create_connection()
+    if connection is None:
         return []
     
     try:
@@ -729,11 +686,10 @@ def get_all_devices_activities():
         return []
     finally:
         connection.close()
-        tunnel.close()
 
 def save_geofence(name: str, coordinates: list, description: str = None):
-    tunnel, connection = create_ssh_tunnel()
-    if tunnel is None or connection is None:
+    connection = create_connection()
+    if connection is None:
         return False  # Changed from None to False for consistency
     
     try:
@@ -754,11 +710,10 @@ def save_geofence(name: str, coordinates: list, description: str = None):
         return False
     finally:
         connection.close()
-        tunnel.close()
 
 def get_all_geofences():
-    tunnel, connection = create_ssh_tunnel()
-    if tunnel is None or connection is None:
+    connection = create_connection()
+    if connection is None:
         return None
     
     try:
@@ -780,7 +735,6 @@ def get_all_geofences():
         return None
     finally:
         connection.close()
-        tunnel.close()
 
 def check_point_in_geofence(lat: float, lng: float):
     """Check if a point is inside any geofence and return the geofence name if found"""
@@ -815,4 +769,5 @@ if __name__ == "__main__":
         print(f"Total data yang ditemukan: {len(data)}")
         for row in data:
             print(row)
+``` 
 
