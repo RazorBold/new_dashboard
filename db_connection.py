@@ -1,6 +1,8 @@
 import pymysql
 from sshtunnel import SSHTunnelForwarder
 from datetime import datetime, timedelta
+import json  # Add this import at the top with other imports
+from shapely.geometry import Point, Polygon  # Add this import
 
 def create_ssh_tunnel():
     # Konfigurasi SSH
@@ -728,6 +730,83 @@ def get_all_devices_activities():
     finally:
         connection.close()
         tunnel.close()
+
+def save_geofence(name: str, coordinates: list, description: str = None):
+    tunnel, connection = create_ssh_tunnel()
+    if tunnel is None or connection is None:
+        return False  # Changed from None to False for consistency
+    
+    try:
+        with connection.cursor() as cursor:
+            sql = """
+                INSERT INTO geofence (name, coordinates, description)
+                VALUES (%s, %s, %s)
+            """
+            cursor.execute(sql, (
+                name,
+                json.dumps(coordinates),  # Convert list to JSON string
+                description
+            ))
+            connection.commit()
+            return True
+    except Exception as e:
+        print(f"Error saving geofence: {str(e)}")
+        return False
+    finally:
+        connection.close()
+        tunnel.close()
+
+def get_all_geofences():
+    tunnel, connection = create_ssh_tunnel()
+    if tunnel is None or connection is None:
+        return None
+    
+    try:
+        with connection.cursor() as cursor:
+            sql = "SELECT id, name, coordinates, description FROM geofence"
+            cursor.execute(sql)
+            result = cursor.fetchall()
+            return [
+                {
+                    'id': row[0],
+                    'name': row[1],
+                    'coordinates': json.loads(row[2]),
+                    'description': row[3]
+                }
+                for row in result
+            ]
+    except Exception as e:
+        print(f"Error getting geofences: {str(e)}")
+        return None
+    finally:
+        connection.close()
+        tunnel.close()
+
+def check_point_in_geofence(lat: float, lng: float):
+    """Check if a point is inside any geofence and return the geofence name if found"""
+    geofences = get_all_geofences()
+    if not geofences:
+        return None
+        
+    try:
+        point = Point([lng, lat])  # Create point
+        
+        for fence in geofences:
+            coords = fence['coordinates']
+            # Convert coordinates to proper format for Polygon
+            polygon_coords = [[p['lng'], p['lat']] for p in coords]
+            polygon = Polygon(polygon_coords)
+            
+            if point.within(polygon):
+                print(f"Point {lat}, {lng} is within geofence {fence['name']}")  # Debug line
+                return fence['name']
+        
+        print(f"Point {lat}, {lng} is not within any geofence")  # Debug line
+        return None
+            
+    except Exception as e:
+        print(f"Error checking point in geofence: {str(e)}")
+        return None
 
 if __name__ == "__main__":
     # Mengambil dan menampilkan data
