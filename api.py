@@ -63,7 +63,16 @@ async def get_registration_by_imei(imei: str):
     data = db.get_registration_data_by_imei(imei)
     if data is None:
         raise HTTPException(status_code=404, detail="Data not found")
-    return {"data": data}
+    
+    processed_data = []
+    for row in data:
+        if row['payload_id_2'] == 'Beacon':
+            major, minor = db.parse_beacon_data(row['parsed_data'])
+            row['major'] = major
+            row['minor'] = minor
+        processed_data.append(row)
+    
+    return {"data": processed_data}
 
 @app.get("/registration/{imei}/date-range")
 async def get_registration_by_date_range(
@@ -160,43 +169,6 @@ async def get_latest_heartbeat(imei: str):
         }
     }
 
-@app.get("/beacons")
-async def get_beacons():
-    data = db.get_all_beacon_data()
-    if data is None:
-        raise HTTPException(status_code=500, detail="Failed to fetch beacon data")
-    return {"data": data, "total": len(data)}
-
-@app.get("/beacon-location")
-async def get_beacon_location(major: str, minor: str):
-    data = db.get_beacon_location(major, minor)
-    if data is None:
-        raise HTTPException(status_code=404, detail="Beacon location not found")
-    return {"data": data}
-
-@app.get("/registration/beacon-data")
-async def get_beacon_registrations(
-    start_date: Optional[datetime] = None,
-    end_date: Optional[datetime] = None,
-    imei: Optional[str] = None
-):
-    """Get registration data filtered for beacon type only"""
-    try:
-        data = db.get_beacon_registration_data(imei, start_date, end_date)
-        if data is None:
-            raise HTTPException(status_code=404, detail="Beacon registration data not found")
-        return {
-            "data": data,
-            "meta": {
-                "total_records": len(data) if data else 0,
-                "imei": imei,
-                "start_date": start_date.strftime('%Y-%m-%d %H:%M:%S') if start_date else None,
-                "end_date": end_date.strftime('%Y-%m-%d %H:%M:%S') if end_date else None
-            }
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
 @app.get("/service-tanto")
 async def get_service_tanto():
     """Get all service tanto data"""
@@ -280,7 +252,7 @@ async def get_address(lat: float, lng: float):
     try:
         # First check if point is in any geofence
         geofence_name = db.check_point_in_geofence(lat, lng)
-        if geofence_name:
+        if (geofence_name):
             return {
                 "street_name": geofence_name,
                 "full_address": f"Inside {geofence_name} Area"
@@ -320,3 +292,67 @@ async def get_address(lat: float, lng: float):
             
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Geocoding error: {str(e)}")
+
+@app.get("/beacon/registration")
+async def get_beacon_registrations(
+    imei: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None
+):
+    """Get beacon registration data with optional IMEI and date filters"""
+    try:
+        data = db.get_beacon_registration_data(imei, start_date, end_date)
+        if data is None:
+            raise HTTPException(status_code=500, detail="Failed to fetch beacon registration data")
+        
+        processed_data = []
+        for row in data:
+            major, minor = db.parse_beacon_data(row['parsed_data'])
+            row['major'] = major
+            row['minor'] = minor
+            processed_data.append(row)
+        
+        return {
+            "status": "success",
+            "data": processed_data,
+            "count": len(processed_data)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/beacon/locations")
+async def get_beacon_locations():
+    """Get all beacon location data"""
+    try:
+        data = db.get_all_beacon_locations()
+        if data is None:
+            raise HTTPException(status_code=500, detail="Failed to fetch beacon locations")
+        
+        return {
+            "status": "success",
+            "data": data,
+            "count": len(data)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/beacon/location/{major}/{minor}")
+async def get_beacon_location_by_id(
+    major: str,
+    minor: str
+):
+    """Get beacon location by major and minor IDs"""
+    try:
+        data = db.get_beacon_location_by_id(major, minor)
+        if data is None:
+            return {
+                "status": "error",
+                "message": "Beacon location not found"
+            }
+        
+        return {
+            "status": "success",
+            "data": data
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
