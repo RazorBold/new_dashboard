@@ -12,17 +12,19 @@
     border-color: var(--primary-color);
 }
 
-/* Info Box Styles */
+/* Info Box Styles - Updated */
 .card {
-    border-radius: 15px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    background: #ffffff;
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     transition: transform 0.2s, box-shadow 0.2s;
     overflow: hidden;
 }
 
 .card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
 .card-body {
@@ -49,6 +51,72 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 0.5rem;
+}
+
+/* Reset background gradients */
+.bg-success.text-white,
+.bg-warning.text-dark,
+.bg-primary.text-white,
+.bg-info.text-white {
+    background: #ffffff !important;
+    color: #333333 !important;
+}
+
+/* Custom border colors for different card types */
+.card.bg-primary {
+    border-left: 4px solid #0d6efd;
+}
+
+.card.bg-info {
+    border-left: 4px solid #17a2b8;
+}
+
+.card.bg-success {
+    border-left: 4px solid #28a745;
+}
+
+.card.bg-warning {
+    border-left: 4px solid #ffc107;
+}
+
+/* Icon colors */
+.bg-primary i {
+    color: #0d6efd;
+}
+
+.bg-info i {
+    color: #17a2b8;
+}
+
+.bg-success i {
+    color: #28a745;
+}
+
+.bg-warning i {
+    color: #ffc107;
+}
+
+/* Card text colors */
+.card h6.card-title {
+    color: #6c757d;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.5rem;
+}
+
+.card h3, .card h5 {
+    color: #333333;
+    font-weight: 600;
+}
+
+/* Status colors in the last card */
+.text-success {
+    color: #28a745 !important;
+}
+
+.text-danger {
+    color: #dc3545 !important;
 }
 
 .bg-success.text-white {
@@ -265,4 +333,80 @@ body {
     #sidebarCollapse {
         display: block;
     }
+}
+
+/* Info Box Grid Styles - Updated */
+.row.g-2 {
+    margin: -0.5rem -0.5rem;
+}
+
+.row.g-2 > .col {
+    padding: 0.5rem;
+    flex: 1;
+    min-width: 0; /* Prevents flex items from overflowing */
+}
+
+.row.g-2 .card {
+    height: 100%;
+    margin: 0;
+}
+
+.row.g-2 .card-body {
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+/* Make icons smaller and consistent */
+.row.g-2 .card i {
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+    height: 24px;
+}
+
+/* Make titles smaller */
+.row.g-2 .card h6.card-title {
+    font-size: 0.7rem;
+    margin-bottom: 0.25rem;
+    height: 16px;
+}
+
+/* Make values smaller and consistent */
+.row.g-2 .card h3,
+.row.g-2 .card h5 {
+    font-size: 0.9rem;
+    margin: 0;
+    height: 20px;
+}
+
+/* Activity value specific styling - Updated */
+.device-activity {
+    font-size: 0.65rem !important;
+    max-width: none;  /* Remove max-width limitation */
+    white-space: normal;  /* Allow text to wrap */
+    line-height: 1.2;
+    margin: 0;
+    padding: 0.15rem;
+    display: block;  /* Changed to block for better text wrapping */
+}
+
+.row.g-2 .card .device-activity {
+    font-size: 0.65rem !important;
+    font-weight: 500;
+}
+
+/* Make the Last Activity card body more compact but taller */
+.row.g-2 .card-body:has(.device-activity) {
+    padding: 0.5rem;
+    min-height: 80px;  /* Ensure enough height for wrapped text */
+}
+
+/* Ensure small text is readable */
+.row.g-2 .card small {
+    font-size: 0.75rem;
+    display: block;
+    line-height: 1.2;
 }
