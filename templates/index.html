@@ -6,9 +6,9 @@
 
 {% block content %}
 <!-- Info Boxes -->
-<div class="row mb-4">
+<div class="row g-2 mb-4"> <!-- Changed to row g-2 for consistent spacing -->
     <!-- Total Devices Box -->
-    <div class="col-md-2">
+    <div class="col">
         <div class="card bg-primary text-white h-100">
             <div class="card-body d-flex flex-column align-items-center justify-content-center">
                 <div class="text-center">
@@ -21,7 +21,7 @@
     </div>
 
     <!-- Selected Device Box -->
-    <div class="col-md-2">
+    <div class="col">
         <div class="card bg-info text-white h-100">
             <div class="card-body d-flex flex-column align-items-center justify-content-center">
                 <div class="text-center">
@@ -35,7 +35,7 @@
 
     {% if selected_imei and device_status %}
         <!-- Voltage Box -->
-        <div class="col-md-2">
+        <div class="col">
             <div class="card bg-success text-white h-100">
                 <div class="card-body d-flex flex-column align-items-center justify-content-center">
                     <div class="text-center">
@@ -48,7 +48,7 @@
         </div>
 
         <!-- Battery Box -->
-        <div class="col-md-2">
+        <div class="col">
             <div class="card bg-warning text-dark h-100">
                 <div class="card-body d-flex flex-column align-items-center justify-content-center">
                     <div class="text-center">
@@ -61,7 +61,7 @@
         </div>
 
         <!-- Last Update Box -->
-        <div class="col-md-2">
+        <div class="col">
             <div class="card h-100">
                 <div class="card-body d-flex flex-column align-items-center justify-content-center">
                     <div class="text-center">
@@ -74,7 +74,7 @@
         </div>
 
         <!-- Status Box -->
-        <div class="col-md-2">
+        <div class="col">
             <div class="card h-100">
                 <div class="card-body d-flex flex-column align-items-center justify-content-center">
                     <div class="text-center">
@@ -87,6 +87,20 @@
                 </div>
             </div>
         </div>
+
+        <!-- Activity Box -->
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                    <div class="text-center">
+                        <i class="fas fa-truck-loading fa-2x mb-2 text-info"></i>
+                        <h6 class="card-title">Last Activity</h6>
+                        <h5 class="device-activity text-info mb-0" data-imei="{{ selected_imei }}">Loading...</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     {% else %}
         <!-- Empty Status Message -->
         <div class="col-md-8">
@@ -181,14 +195,13 @@
             <table class="table table-striped table-hover">
                 <thead>
                     <tr>
-                        <th>No</th>
-                        <th>Device Info</th>
-                        <th>Type</th>
-                        <th>Timestamp</th>
-                        <th>Location</th>
-                        <th>Activity Status</th> <!-- New column -->
-                        <th>Major/Minor</th>
-                        <th>Battery</th>
+                        <th style="width: 5%">No</th>
+                        <th style="width: 20%">Device Info</th>
+                        <th style="width: 10%">Type</th>
+                        <th style="width: 15%">Timestamp</th>
+                        <th style="width: 25%">Location</th>
+                        <th style="width: 10%">Major/Minor</th>
+                        <th style="width: 15%">Battery</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -220,12 +233,8 @@
                             {% endif %}
                         </td>
                         <td>
-                            <!-- New Activity Status column -->
-                            <small class="device-activity" data-imei="{{ item.payload_id_1 }}">Loading activity...</small>
-                        </td>
-                        <td>
                             {% if item.payload_id_2 == 'Beacon' %}
-                                {{ item.Major or '-' }}/{{ item.Minor or '-' }}
+                                {{ item.major or '-' }}/{{ item.minor or '-' }}
                             {% else %}
                                 -
                             {% endif %}
@@ -506,6 +515,9 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('deviceFilterForm').addEventListener('submit', function(e) {
         e.preventDefault();
         const imei = document.getElementById('deviceSelect').value;
+        if (imei) {
+            updateBeaconData();
+        }
         window.location.href = `/dashboard?page=1&imei=${imei}`;
     });
 
@@ -614,6 +626,136 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Add to your existing function calls
     loadStreetNames();
+
+    async function updateBeaconData() {
+        const imei = document.getElementById('deviceSelect').value;
+        if (!imei) return;
+        
+        try {
+            const response = await fetch(`/registration/beacon-data?imei=${imei}`);
+            const data = await response.json();
+            
+            // Update beacon data in table
+            document.querySelectorAll('tr').forEach(row => {
+                const payloadType = row.querySelector('td:nth-child(3)');
+                if (payloadType && payloadType.textContent.trim() === 'Beacon') {
+                    const imeiCell = row.querySelector('td:nth-child(2)');
+                    const rowImei = imeiCell?.textContent.trim().split(':')[1]?.trim();
+                    
+                    if (rowImei === imei) {
+                        const beaconData = data.data.find(b => 
+                            b.timestamp === row.querySelector('td:nth-child(4)').textContent.trim()
+                        );
+                        
+                        if (beaconData) {
+                            // Update Major/Minor cell
+                            const majorMinorCell = row.querySelector('td:nth-child(6)');
+                            if (beaconData.Major && beaconData.Minor) {
+                                majorMinorCell.textContent = `${beaconData.Major}/${beaconData.Minor}`;
+                            }
+                        }
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Error fetching beacon data:', error);
+        }
+    }
+
+    // Add new function to handle beacon data
+    async function processBeaconData(imei) {
+        try {
+            // Get beacon registration data
+            const beaconResponse = await fetch(`/beacon/registration?imei=${imei}`);
+            const beaconData = await beaconResponse.json();
+            
+            if (beaconData.status === 'success' && beaconData.data.length > 0) {
+                // Process each beacon record
+                for (const record of beaconData.data) {
+                    if (record.major && record.minor) {
+                        // Get location info for this beacon
+                        const locationResponse = await fetch(`/beacon/location/${record.major}/${record.minor}`);
+                        const locationData = await locationResponse.json();
+                        
+                        if (locationData.status === 'success') {
+                            // Update table cell with location info
+                            const rows = document.querySelectorAll('tr');
+                            rows.forEach(row => {
+                                const payloadType = row.querySelector('td:nth-child(3)');
+                                const timestampCell = row.querySelector('td:nth-child(4)');
+                                if (payloadType?.textContent.trim() === 'Beacon' && 
+                                    timestampCell?.textContent.trim() === record.timestamp) {
+                                    
+                                    // Update location column
+                                    const locationCell = row.querySelector('td:nth-child(5)');
+                                    locationCell.innerHTML = `
+                                        ${locationData.data.location_name}<br>
+                                        <small class="text-muted">(${locationData.data.beacon_name})</small>
+                                    `;
+
+                                    // Add marker to map if coordinates exist
+                                    if (locationData.data.latitude && locationData.data.longitude) {
+                                        const marker = L.marker(
+                                            [locationData.data.latitude, locationData.data.longitude],
+                                            {
+                                                icon: L.divIcon({
+                                                    className: 'beacon-marker',
+                                                    html: '<i class="fas fa-broadcast-tower text-primary"></i>',
+                                                    iconSize: [20, 20]
+                                                })
+                                            }
+                                        ).addTo(map);
+
+                                        marker.bindPopup(`
+                                            <strong>${locationData.data.beacon_name}</strong><br>
+                                            Location: ${locationData.data.location_name}<br>
+                                            Major: ${record.major}<br>
+                                            Minor: ${record.minor}<br>
+                                            Detected: ${record.timestamp}
+                                        `);
+                                    }
+                                }
+                            });
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error processing beacon data:', error);
+        }
+    }
+
+    // Modify existing device filter handler
+    document.getElementById('deviceFilterForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const imei = document.getElementById('deviceSelect').value;
+        if (imei) {
+            await updateBeaconData(imei);
+        }
+        window.location.href = `/dashboard?page=1&imei=${imei}`;
+    });
+
+    // Initial beacon processing for selected device
+    const selectedImei = document.getElementById('deviceSelect').value;
+    if (selectedImei) {
+        processBeaconData(selectedImei);
+    }
+
+    // Add beacon marker styles
+    const style = document.createElement('style');
+    style.textContent = `
+        .beacon-marker {
+            text-align: center;
+            color: #2196F3;
+            font-size: 20px;
+            margin-top: -10px;
+        }
+        .beacon-marker i {
+            filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5));
+        }
+    `;
+    document.head.appendChild(style);
 });
 </script>
+
 {% endblock %}
