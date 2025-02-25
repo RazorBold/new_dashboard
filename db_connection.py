@@ -4,7 +4,7 @@ import json
 from shapely.geometry import Point, Polygon
 
 def create_connection():
-    # Konfigurasi Database
+    # Konfigurasi Database Lokal
     db_config = {
         'host': 'localhost',
         'port': 3306,
@@ -455,6 +455,7 @@ def get_beacon_location(major, minor):
         connection.close()
 
 def get_beacon_registration_data(imei=None, start_date=None, end_date=None):
+    """Get beacon registration data with optional IMEI and date filters"""
     connection = create_connection()
     if connection is None:
         return None
@@ -463,23 +464,20 @@ def get_beacon_registration_data(imei=None, start_date=None, end_date=None):
         with connection.cursor() as cursor:
             sql = """
                 SELECT id, payload_id_1, payload_id_2, parsed_data,
-                       longitude, latitude, timestamp, voltage,
-                       persentase_baterai, alarm
+                       timestamp, voltage, persentase_baterai
                 FROM registration 
                 WHERE payload_id_2 = 'Beacon'
             """
             params = []
             
-            # Add IMEI filter if provided
             if imei:
                 sql += " AND payload_id_1 = %s"
                 params.append(imei)
-            
-            # Add date range filter if provided
+                
             if start_date and end_date:
                 sql += " AND timestamp BETWEEN %s AND %s"
                 params.extend([start_date, end_date])
-            
+                
             sql += " ORDER BY timestamp DESC"
             
             cursor.execute(sql, params)
@@ -500,6 +498,89 @@ def get_beacon_registration_data(imei=None, start_date=None, end_date=None):
         return None
     finally:
         connection.close()
+
+def get_all_beacon_locations():
+    connection = create_connection()
+    if connection is None:
+        return None
+    
+    try:
+        with connection.cursor() as cursor:
+            sql = """
+                SELECT id, name, major, minor, 
+                       longitude, latitude, location_name
+                FROM data_beacon
+                ORDER BY id
+            """
+            cursor.execute(sql)
+            result = cursor.fetchall()
+            column_names = [desc[0] for desc in cursor.description]
+            formatted_result = []
+            
+            for row in result:
+                row_dict = dict(zip(column_names, row))
+                formatted_result.append(row_dict)
+            
+            return formatted_result
+            
+    except Exception as e:
+        print(f"Error getting beacon locations: {str(e)}")
+        return None
+    finally:
+        connection.close()
+
+def get_beacon_location_by_id(major, minor):
+    connection = create_connection()
+    if connection is None:
+        return None
+    
+    try:
+        with connection.cursor() as cursor:
+            sql = """
+                SELECT longitude, latitude, location_name, name
+                FROM data_beacon
+                WHERE major = %s AND minor = %s
+                LIMIT 1
+            """
+            cursor.execute(sql, (major, minor))
+            result = cursor.fetchone()
+            if result:
+                return {
+                    "longitude": result[0],
+                    "latitude": result[1],
+                    "location_name": result[2],
+                    "beacon_name": result[3]
+                }
+            return None
+            
+    except Exception as e:
+        print(f"Error getting beacon location by ID: {str(e)}")
+        return None
+    finally:
+        connection.close()
+
+def parse_beacon_data(parsed_data):
+    """Parse beacon data to extract major and minor values"""
+    try:
+        # Handle string that looks like a dict
+        if isinstance(parsed_data, str):
+            # Replace single quotes with double quotes for valid JSON
+            parsed_data = parsed_data.replace("'", '"')
+            data = json.loads(parsed_data)
+        else:
+            data = parsed_data
+
+        beacons = data.get('beacons', [])
+        if beacons and isinstance(beacons, list) and len(beacons) > 0:
+            major = str(beacons[0].get('major'))
+            minor = str(beacons[0].get('minor'))
+            if major and minor:
+                return major, minor
+        return None, None
+    except Exception as e:
+        print(f"Error parsing beacon data: {str(e)}")
+        print(f"Raw data: {parsed_data}")
+        return None, None
 
 def get_service_tanto_data():
     connection = create_connection()
@@ -762,6 +843,54 @@ def check_point_in_geofence(lat: float, lng: float):
         print(f"Error checking point in geofence: {str(e)}")
         return None
 
+def get_beacon_registration_data(imei=None, start_date=None, end_date=None, limit=None):
+    connection = create_connection()
+    if connection is None:
+        return None
+    
+    try:
+        with connection.cursor() as cursor:
+            sql = """
+                SELECT id, payload_id_1, payload_id_2, parsed_data,
+                       timestamp, voltage, persentase_baterai
+                FROM registration 
+                WHERE payload_id_2 = 'Beacon'
+            """
+            params = []
+            
+            if imei:
+                sql += " AND payload_id_1 = %s"
+                params.append(imei)
+                
+            if start_date and end_date:
+                sql += " AND timestamp BETWEEN %s AND %s"
+                params.extend([start_date, end_date])
+                
+            sql += " ORDER BY timestamp DESC"
+            
+            if limit:
+                sql += " LIMIT %s"
+                params.append(limit)
+            
+            cursor.execute(sql, params)
+            result = cursor.fetchall()
+            column_names = [desc[0] for desc in cursor.description]
+            formatted_result = []
+            
+            for row in result:
+                row_dict = dict(zip(column_names, row))
+                if row_dict.get('timestamp'):
+                    row_dict['timestamp'] = row_dict['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
+                formatted_result.append(row_dict)
+            
+            return formatted_result
+            
+    except Exception as e:
+        print(f"Error getting beacon registration data: {str(e)}")
+        return None
+    finally:
+        connection.close()
+
 if __name__ == "__main__":
     # Mengambil dan menampilkan data
     data = get_all_registration_data()
@@ -769,5 +898,3 @@ if __name__ == "__main__":
         print(f"Total data yang ditemukan: {len(data)}")
         for row in data:
             print(row)
-``` 
-
