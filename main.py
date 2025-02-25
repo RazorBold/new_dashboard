@@ -107,6 +107,23 @@ async def dashboard(
         end_idx = start_idx + ITEMS_PER_PAGE
         current_data = data[start_idx:end_idx]
         
+        # Process beacon data for each row
+        for item in current_data:
+            if item['payload_id_2'] == 'Beacon':
+                try:
+                    # Parse beacon data to get major/minor
+                    major, minor = db.parse_beacon_data(item['parsed_data'])
+                    if major and minor:
+                        # Get beacon location data
+                        location = db.get_beacon_location_by_id(major, minor)
+                        if location:
+                            item['location_name'] = location['location_name']
+                            item['beacon_name'] = location['beacon_name']
+                        item['major'] = major
+                        item['minor'] = minor
+                except Exception as e:
+                    print(f"Error processing beacon data: {str(e)}")
+        
         return templates.TemplateResponse(
             "index.html",
             {
@@ -267,4 +284,4 @@ async def geofence_page(request: Request):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=5003)
+    uvicorn.run(app, host="0.0.0.0", port=5008)
